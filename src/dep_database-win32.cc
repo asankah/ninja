@@ -156,6 +156,7 @@ void DepDatabase::InsertOrUpdateDepData(const string& filename,
         i->offset = inserted_offset;
       } else {
         if (view->index_entries >= view->max_index_entries) {
+          data_.Release();
           Fatal("need to grow index: %d entries", view->index_entries);
         }
         // We're inserting, not updating. Add to the index.
@@ -199,8 +200,10 @@ void DepDatabase::CompactDatabase() {
       vector<StringPiece> deps;
       string err;
       size_t data_size;
-      if (!FindDepData(source_view->index[i].path, &deps, &err))
+      if (!FindDepData(source_view->index[i].path, &deps, &err)) {
+        data_.Release();
         Fatal("couldn't get dep data for '%s'", source_view->index[i].path);
+      }
       char* deplist = Deplist::SerializeForDatabase(source_view->index[i].path,
                                                     deps, &data_size);
 
@@ -293,8 +296,10 @@ string DepDatabase::DumpToString() {
       {
         vector<StringPiece> entries;
         string err;
-        if (!FindDepData(view->index[i].path, &entries, &err))
+        if (!FindDepData(view->index[i].path, &entries, &err)) {
+          data_.Release();
           Fatal("couldn't load deps for %s: %s\n", view->index[i].path, err.c_str());
+        }
         ret += view->index[i].path;
         ret += ":\n";
         for (vector<StringPiece>::const_iterator i = entries.begin();
